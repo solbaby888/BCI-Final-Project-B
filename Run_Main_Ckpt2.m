@@ -101,8 +101,8 @@ nr          = ceil((sesh_sub_1.data(1).rawChannels(1).get_tsdetails.getEndTime)/
 ECoG_Sub_Chan_train       = cell(1, no_of_channels_ECOG);
 ECoG_Sub_Chan_test        = cell(1, no_of_channels_ECOG);
 for i = 1:no_of_channels_ECOG;
-    ECoG_Sub_Chan_train{:, i} = sesh_sub_1.data(1).getvalues(1:nr*2/3, i); 
-    ECoG_Sub_Chan_test{:, i}  = sesh_sub_1.data(1).getvalues((nr*2/3 + 1):nr, i);
+    ECoG_Sub_Chan_train{:, i} = sesh_sub_1.data(1).getvalues(1:nr*3/5, i); 
+    ECoG_Sub_Chan_test{:, i}  = sesh_sub_1.data(1).getvalues((nr*2/5 + 1):nr, i);
 end;
 L                   = length(ECoG_Sub_Chan_train{1});
 
@@ -112,8 +112,8 @@ nr        = ceil((sesh_sub_2.data(1).rawChannels(1).get_tsdetails.getEndTime)/..
 Glovedata_train = {};
 Glovedata_test  = {};
 for i = 1:5;
-    Glovedata_train{i} = sesh_sub_2.data(1).getvalues(1:nr*2/3, i);
-    Glovedata_test{i}  = sesh_sub_2.data(1).getvalues((nr*2/3 + 1):nr, i);
+    Glovedata_train{i} = sesh_sub_2.data(1).getvalues(1:nr*3/5, i);
+    Glovedata_test{i}  = sesh_sub_2.data(1).getvalues((nr*2/5 + 1):nr, i);
 end;
 
 [f, ~, Training_Correlation, R_matrix] = Training_Code(ECoG_Sub_Chan_train, fs_ECOG, no_of_channels_ECOG, Glovedata_train);
