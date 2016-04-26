@@ -6,18 +6,18 @@
     % Import Data
     % Training on subj 1 2 3
 %}
-close all;
-clear all;
-clc;
+% close all;
+% clear all;
+% clc;
 
 % Import Data
 % ==Login=================================================================%
 % Karan's login
-% ieeglogin = 'kar_ieeglogin.bin';
-% username = 'karanm';
+ieeglogin = 'kar_ieeglogin.bin';
+username = 'karanm';
 % Thuy's login
-username = 'solbaby888';
-ieeglogin = 'sol_ieeglogin.bin';
+% username = 'solbaby888';
+% ieeglogin = 'sol_ieeglogin.bin';
 %=========================================================================%
 
 % Subject 1 2 3
@@ -31,9 +31,9 @@ for subj = 1:3;
         filename = 'I521_A0014';
     end;
     
-    sesh_sub_1 = IEEGSession(strcat(filename, '_D001'), username, ieeglogin);
-    sesh_sub_2 = IEEGSession(strcat(filename, '_D002'), username, ieeglogin);
-    sesh_sub_3 = IEEGSession(strcat(filename, '_D003'), username, ieeglogin);
+%     sesh_sub_1 = IEEGSession(strcat(filename, '_D001'), username, ieeglogin);
+%     sesh_sub_2 = IEEGSession(strcat(filename, '_D002'), username, ieeglogin);
+%     sesh_sub_3 = IEEGSession(strcat(filename, '_D003'), username, ieeglogin);
 
 
     % Parameters for EcoG data
