@@ -4,10 +4,13 @@ function [f, pred_upsample, Training_Correlation, R_matrix] = Training_Code(ECoG
     % Working only with Subject 1 but with all the channels of subject 1
     
     Table of Contents (By Section):
+    % Global Vars
     % Apply 60 Hz filter
     % Checkpt 1
-
 %}
+
+%% Global Variables
+% fs_ECOG is global in MAIN
 
 %% Apply 60 Hz filter and Bandpass filter
 % 60 Hz Notch Filter - ver 2
@@ -39,11 +42,11 @@ windowLen   = window_time * fs_ECOG;                     % number of pts per win
 L           = length(ECoG_Sub_Chan_filt{1});
 NoW         = NumWins(L, fs_ECOG, window_time, overlap); 
 
-% Calculate frequency domain avg power features over windows
+% FEATURES A: Calculate frequency domain avg power features over windows
 %# Calculates spectrogram and respective averages for assignment-specified frequencies
 Freq_domain_Feat     = FFT_featFn(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
 
-% Calculate time domain avg voltage 
+% FEATURES B: Calculate time domain avg voltage 
 kernnel = repmat(1/(window_time*fs_ECOG), 1, window_time*fs_ECOG);
 for i=1:no_of_channels_ECOG;
     time_avg_volt_temp  = conv(ECoG_Sub_Chan_filt{1,i}, kernnel, 'valid');
@@ -55,26 +58,11 @@ for i=1:no_of_channels_ECOG
     Feat_Mat{i} = [time_avg_volt(:,i) Freq_domain_Feat{1,i}];    % time window X no. of feature
 end
 
-% % Feature Optimization
-% col_start= 0;
-% col_end  = 0;
-% Feat_opt = [];
-% for i=1:no_of_channels_ECOG
-%     col_start      = col_end+1;
-%     col_end        = col_start+size(Feat_Mat{i},2)-1;
-%     Feat_opt(:,col_start:col_end) = Feat_Mat{i};
-% end
-% 
-
-
 % Downsampling dataglove traces                 
 %# Cell array glove positions (1:5)                   
-
 for i = 1:5;
-    Glovedata_ds{i}  =  decimate(Glovedata{i}, overlap*fs_ECOG); 
+    Glovedata_ds(:,i)  =  decimate(Glovedata(:,i), overlap*fs_ECOG); 
 end;
-
-global Glovedata
 
 % Linear Regression Prediction
 numoffeat       = size(Feat_Mat{1},2);
@@ -97,34 +85,13 @@ end;
 R_ones     = ones(length(R_mat),1);
 R_matrix   = [R_ones R_mat];
 
-
-for i= 1:5;
-    inmodel = sequentialfs(fun,R_matrix,Glovedata_ds{i});
+% Optimizing features
+inmodel = cell(1,5);
+history = cell(1,5);
+for finger = 1:5;
+    [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_matrix,Glovedata_ds(5:end,finger));
 end;
-% 
-% 
-% % Weights and prediction for each finger
-% for i = 1:5
-%     f{i}         = mldivide(R_matrix'*R_matrix, R_matrix' * Glovedata_ds{i}(5:end));
-%     pred{i}      = R_matrix*f{i};   
-% end;
-% 
-% % Spline interpolation
-% %# the interpolation isnt working yet..needs work
-% points_excluded = windowLen + overlap*fs_ECOG;
-% x  = overlap*fs_ECOG:overlap*fs_ECOG:L-points_excluded-overlap*fs_ECOG;
-% xx = 1:L-points_excluded;
-% 
-% pred_upsample = [];
-% for i = 1:5
-%     pred_upsample(:,i) = spline(x, pred{i}, xx);
-% end
-% pred_upsample = [zeros(points_excluded, 5); pred_upsample];
-% 
-% for i = 1:5;
-%    Glovedata_mat(:,i) = Glovedata{i};
-% end;
-% 
-% Training_Correlation = corr(Glovedata_mat, round(pred_upsample));
-% 
-% 
+
+% Save
+save(strcat('inmodel', '_sub', subj, '_finger', finger), 'inmodel');
+save(strcat('history', '_sub', 'finger', finger, subj), 'history');
