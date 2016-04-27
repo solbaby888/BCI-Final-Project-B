@@ -21,56 +21,54 @@ ieeglogin = 'sol_ieeglogin.bin';
 %=========================================================================%
 % Save Datasets
 % Subject 1 2 3
-for subj = 1:3;
-    % Global Variables
-    if subj == 1;
-        filename = 'I521_A0012';
-        load('Sub1_Channels')
-        load('Sub1_Glovedata')
-    elseif subj == 2;
-        filename = 'I521_A0013';
-    elseif subj == 3;
-        filename = 'I521_A0014';
-    end;
-    
-     sesh_sub_1 = IEEGSession(strcat(filename, '_D001'), username, ieeglogin);
-     sesh_sub_2 = IEEGSession(strcat(filename, '_D002'), username, ieeglogin);
-     sesh_sub_3 = IEEGSession(strcat(filename, '_D003'), username, ieeglogin);
-
-   no_of_channels_ECOG = size(sesh_sub_1.data(1).rawChannels, 2);  % Number of Channels 
-
-    % ECoG data
-    nr                  = ceil((sesh_sub_1.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
-                            1e6*sesh_sub_1.data(1).sampleRate);
-    ECoG_Sub_Chan       = cell(1, no_of_channels_ECOG);
-    for i = 1:no_of_channels_ECOG;
-        ECoG_Sub_Chan{:, i} = smooth(sesh_sub_1.data(1).getvalues(1:nr, i)); % SMOOTHED DATA: May want to optimize
-    end;
-    
-    % Glove data       
-    nr        = ceil((sesh_sub_2.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
-                            1e6*sesh_sub_2.data(1).sampleRate);
-    Glovedata = [];
-    for i = 1:5;
-        Glovedata(:, i) = sesh_sub_2.data(1).getvalues(1:nr, i);
-    end;
-    
-    save(strcat('Sub', num2str(subj), '_Channels', 'ECoG_Sub_Chan'))
-    save(strcat('Sub', num2str(subj), '_Glovedata', 'Glovedata'))
-    
-    
-end;  
+% for subj = 1:3;
+%     global Glovedata;
+%     if subj == 1;
+%         filename = 'I521_A0012';
+%     elseif subj == 2;
+%         filename = 'I521_A0013';
+%     elseif subj == 3;
+%         filename = 'I521_A0014';
+%     end;
+%     
+%      sesh_sub_1 = IEEGSession(strcat(filename, '_D001'), username, ieeglogin);
+%      sesh_sub_2 = IEEGSession(strcat(filename, '_D002'), username, ieeglogin);
+%      sesh_sub_3 = IEEGSession(strcat(filename, '_D003'), username, ieeglogin);
+% 
+%    no_of_channels_ECOG = size(sesh_sub_1.data(1).rawChannels, 2);  % Number of Channels 
+% 
+%     % ECoG data
+%     nr                  = ceil((sesh_sub_1.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
+%                             1e6*sesh_sub_1.data(1).sampleRate);
+%     ECoG_Sub_Chan       = cell(1, no_of_channels_ECOG);
+%     for i = 1:no_of_channels_ECOG;
+%         ECoG_Sub_Chan{:, i} = smooth(sesh_sub_1.data(1).getvalues(1:nr, i)); % SMOOTHED DATA: May want to optimize
+%     end;
+%     
+%     % Glove data       
+%     nr        = ceil((sesh_sub_2.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
+%                             1e6*sesh_sub_2.data(1).sampleRate);
+%     Glovedata = [];
+%     for i = 1:5;
+%         Glovedata(:, i) = sesh_sub_2.data(1).getvalues(1:nr, i);
+%     end;
+%     
+%     save(strcat('Sub', num2str(subj), '_Channels'), 'ECoG_Sub_Chan')
+%     save(strcat('Sub', num2str(subj), '_Glovedata'), 'Glovedata')
+%       
+% end;  
 %=========================================================================%
 % Subject 1 2 3
+global subj;
 for subj = 1:3;
     % Global Variables
     global fs_ECOG;
-    global Glovedata;
-    global subj;    
+    global Glovedata;     
     global overlap;
     global windowLen;
     global finger;
     global L;
+    global subj;
     
     if subj == 1;
         filename = 'I521_A0012';
@@ -97,32 +95,11 @@ for subj = 1:3;
      no_of_channels_ECOG = size(sesh_sub_1.data(1).rawChannels, 2);  % Number of Channels 
  
     % TRAIN
-    Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);    
-
-    
-    
-%     % ECoG data
-%     nr                  = ceil((sesh_sub_1.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
-%                             1e6*sesh_sub_1.data(1).sampleRate);
-%     ECoG_Sub_Chan       = cell(1, no_of_channels_ECOG);
-%     for i = 1:no_of_channels_ECOG;
-%         ECoG_Sub_Chan{:, i} = smooth(sesh_sub_1.data(1).getvalues(1:nr, i)); % SMOOTHED DATA: May want to optimize
-%     end;
-%     
-%     
-%     % Glove data       
-%     nr        = ceil((sesh_sub_2.data(1).rawChannels(1).get_tsdetails.getEndTime)/...
-%                             1e6*sesh_sub_2.data(1).sampleRate);
-%     Glovedata = [];
-%     for i = 1:5;
-%         Glovedata(:, i) = sesh_sub_2.data(1).getvalues(1:nr, i);
-%     end;
- 
-    
-    
+    [f, Correlation] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);     
+    save(strcat('Training_correlation', '_sub', num2str(subj)), 'Correlation'); 
 end;  
 
-%% 
+%%      
 
 
 %% Cross Validation of Subj 1
@@ -281,7 +258,7 @@ for subj = 1:3;
         ECoG_Sub_Chan{:, i} = smooth(sesh_sub_3.data(1).getvalues(1:nr, i)); 
     end;
     
-    save(strcat('Sub', num2str(subj), '_Channels_Test', 'ECoG_Sub_Chan');    
+    save(strcat('Sub', num2str(subj), '_Channels_Test'), 'ECoG_Sub_Chan');    
     pred_upsample = Testing_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, weights);
   
     

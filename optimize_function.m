@@ -11,7 +11,10 @@ function criterion = optimize_function(XTRAIN, YTRAIN, XTEST, YTEST) %(XTRAIN,y_
 % Linear Regression Prediction
 % fun takes different features of R matrix. No of rows remains consistent.
 % Weights and prediction for each finger
-
+R_ones_train   = ones(length(XTRAIN),1);
+R_ones_test    = ones(length(XTEST),1);
+XTEST    = [R_ones_test XTEST];
+XTRAIN   = [R_ones_train XTRAIN];
 f        = mldivide(XTRAIN' * XTRAIN, XTRAIN' * YTRAIN);
 pred     = XTEST*f; 
 
@@ -26,7 +29,7 @@ pred     = XTEST*f;
 % pred_upsample = [zeros(points_excluded, 1); pred_upsample];
 
 % XTEST CALCULATION
-Training_Err = -corr(YTEST, pred);
+Training_Err = 1-corr(YTEST, pred);
 criterion    = Training_Err;
 
 end

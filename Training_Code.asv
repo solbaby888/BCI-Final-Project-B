@@ -1,19 +1,22 @@
-% Checkpoint 1
-function [f, pred_upsample, Training_Correlation, R_matrix] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
+    % Checkpoint 1
+function [f, Correlation] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
 %{ 
     % Working only with Subject 1 but with all the channels of subject 1
     
     Table of Contents (By Section):
-
+    % Global Vars
     % Apply 60 Hz filter
-    % Checkpt 1
+    % Checkpt 2
 %}
 
-%# Global Variables
+%% Global Variables
+global fs_ECOG;
+global Glovedata;     
 global overlap;
 global windowLen;
 global finger;
 global L;
+global subj;
 
 %% Apply 60 Hz filter and Bandpass filter
 % 60 Hz Notch Filter - ver 2
@@ -27,9 +30,6 @@ end;
 %% Checkpt 1
 %{ 
     window of 100 ms; overlap of 50 ms
-
-    Some comments: I accidently decided to calculate some other features.
-    We can remove them for now for the first checkpoint. Stupid extra work.
 
 %}
 
@@ -45,11 +45,11 @@ windowLen   = window_time * fs_ECOG;                     % number of pts per win
 L           = length(ECoG_Sub_Chan_filt{1});
 NoW         = NumWins(L, fs_ECOG, window_time, overlap); 
 
-% Calculate frequency domain avg power features over windows
+% FEATURES A: Calculate frequency domain avg power features over windows
 %# Calculates spectrogram and respective averages for assignment-specified frequencies
 Freq_domain_Feat     = FFT_featFn(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
 
-% Calculate time domain avg voltage 
+% FEATURES B: Calculate time domain avg voltage 
 kernnel = repmat(1/(window_time*fs_ECOG), 1, window_time*fs_ECOG);
 for i=1:no_of_channels_ECOG;
     time_avg_volt_temp  = conv(ECoG_Sub_Chan_filt{1,i}, kernnel, 'valid');
@@ -63,12 +63,9 @@ end
 
 % Downsampling dataglove traces                 
 %# Cell array glove positions (1:5)                   
-
 for i = 1:5;
-    Glovedata_ds{i}  =  decimate(Glovedata{i}, overlap*fs_ECOG); 
+    Glovedata_ds(:,i)  =  decimate(Glovedata(:,i), overlap*fs_ECOG); 
 end;
-
-global Glovedata
 
 % Linear Regression Prediction
 numoffeat       = size(Feat_Mat{1},2);
@@ -88,39 +85,33 @@ for i = 1:n_of_R;
 end; 
 
 % Adding the first columns of ones
-R_ones     = ones(length(R_mat),1);
-R_matrix   = [R_ones R_mat];
+
 
 % Optimizing features
-%# Global vars
 
-for i= 1:5;
-    [inmodel{finger}, history{finger}] = sequentialfs(fun,R_matrix,Glovedata_ds{i});
+inmodel = cell(1,5);
+history = cell(1,5);
+f       = cell(1,5);
+for finger = 1:5;
+    [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_mat,Glovedata_ds(5:end,finger), 'direction', 'backward);
+    R_mat_finger = R_mat(:, inmodel{finger});
+    R_ones_train = ones(length(R_mat_finger),1);
+    TRAIN        = [R_ones_train R_mat_finger];
+    f{finger}    = mldivide(TRAIN' * TRAIN, TRAIN' * Glovedata_ds(5:end,finger));
+    pred           = TRAIN*f{finger}; 
+    
+    % spline
+    points_excluded = windowLen + overlap*fs_ECOG;
+    x               = overlap*fs_ECOG:overlap*fs_ECOG:L-points_excluded-overlap*fs_ECOG;
+    xx              = 1:L-points_excluded;
+    pred_upsample   = spline(x, pred, xx);
+    pred_upsample   = [zeros(points_excluded, 1); pred_upsample'];
+   
+    Correlation(finger)     = corr(Glovedata(:,finger), pred_upsample);
 end;
-% 
-% 
-% % Weights and prediction for each finger
-% for i = 1:5
-%     f{i}         = mldivide(R_matrix'*R_matrix, R_matrix' * Glovedata_ds{i}(5:end));
-%     pred{i}      = R_matrix*f{i};   
-% end;
-% 
-% % Spline interpolation
-% %# the interpolation isnt working yet..needs work
-% points_excluded = windowLen + overlap*fs_ECOG;
-% x  = overlap*fs_ECOG:overlap*fs_ECOG:L-points_excluded-overlap*fs_ECOG;
-% xx = 1:L-points_excluded;
-% 
-% pred_upsample = [];
-% for i = 1:5
-%     pred_upsample(:,i) = spline(x, pred{i}, xx);
-% end
-% pred_upsample = [zeros(points_excluded, 5); pred_upsample];
-% 
-% for i = 1:5;
-%    Glovedata_mat(:,i) = Glovedata{i};
-% end;
-% 
-% Training_Correlation = corr(Glovedata_mat, round(pred_upsample));
-% 
-% 
+% Save
+save(strcat('inmodel', '_sub', num2str(subj)), 'inmodel');
+save(strcat('history', '_sub', num2str(subj)), 'history');
+save(strcat('weights', '_sub', num2str(subj)), 'f');
+
+

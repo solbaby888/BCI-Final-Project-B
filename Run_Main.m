@@ -60,7 +60,7 @@ for subj = 1:3;
     fs_dataglove        = sesh_sub_2.data(1).sampleRate;
     
     % TRAIN
-    [f, ~, Training_Correlation] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
+    [f, ~, Training_Correlation] = Training_Code_old(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
     
     % SAVE
     % Save weights;

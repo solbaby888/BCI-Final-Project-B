@@ -1,16 +1,22 @@
-% Checkpoint 1
-function [f, pred_upsample, Training_Correlation, R_matrix] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
+    % Checkpoint 1
+function [f, Correlation] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, Glovedata);
 %{ 
     % Working only with Subject 1 but with all the channels of subject 1
     
     Table of Contents (By Section):
     % Global Vars
     % Apply 60 Hz filter
-    % Checkpt 1
+    % Checkpt 2
 %}
 
 %% Global Variables
-% fs_ECOG is global in MAIN
+global fs_ECOG;
+global Glovedata;     
+global overlap;
+global windowLen;
+global finger;
+global L;
+global subj;
 
 %% Apply 60 Hz filter and Bandpass filter
 % 60 Hz Notch Filter - ver 2
@@ -24,9 +30,6 @@ end;
 %% Checkpt 1
 %{ 
     window of 100 ms; overlap of 50 ms
-
-    Some comments: I accidently decided to calculate some other features.
-    We can remove them for now for the first checkpoint. Stupid extra work.
 
 %}
 
@@ -82,16 +85,33 @@ for i = 1:n_of_R;
 end; 
 
 % Adding the first columns of ones
-R_ones     = ones(length(R_mat),1);
-R_matrix   = [R_ones R_mat];
+
 
 % Optimizing features
+
 inmodel = cell(1,5);
 history = cell(1,5);
+f       = cell(1,5);
 for finger = 1:5;
-    [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_matrix,Glovedata_ds(5:end,finger));
+    [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_mat,Glovedata_ds(5:end,finger), 'direction', 'backwards');
+    R_mat_finger = R_mat(:, inmodel{finger});
+    R_ones_train = ones(length(R_mat_finger),1);
+    TRAIN        = [R_ones_train R_mat_finger];
+    f{finger}    = mldivide(TRAIN' * TRAIN, TRAIN' * Glovedata_ds(5:end,finger));Correlation(finger)     = corr(Glovedata(:,finger), pred_upsample);
+    pred           = TRAIN*f{finger}; 
+    
+    % spline
+    points_excluded = windowLen + overlap*fs_ECOG;
+    x               = overlap*fs_ECOG:overlap*fs_ECOG:L-points_excluded-overlap*fs_ECOG;
+    xx              = 1:L-points_excluded;
+    pred_upsample   = spline(x, pred, xx);
+    pred_upsample   = [zeros(points_excluded, 1); pred_upsample'];
+   
+    Correlation(finger)     = corr(Glovedata(:,finger), pred_upsample);
 end;
-
 % Save
-save(strcat('inmodel', '_sub', subj, '_finger', finger), 'inmodel');
-save(strcat('history', '_sub', 'finger', finger, subj), 'history');
+save(strcat('inmodel', '_sub', num2str(subj)), 'inmodel');
+save(strcat('history', '_sub', num2str(subj)), 'history');
+save(strcat('weights', '_sub', num2str(subj)), 'f');
+
+
