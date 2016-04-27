@@ -9,9 +9,6 @@ for i = 1:length(signal);
     [s w t] = spectrogram(signal_detrend, window*fs, overlap*fs, (20:25), fs, 'yaxis');
     FFT_20_25   = mean(abs(s));
 
-    [s w t] = spectrogram(signal_detrend, window*fs, overlap*fs, (20:25), fs, 'yaxis');
-    FFT_20_25   = mean(abs(s));
-
     [s w t] = spectrogram(signal_detrend, window*fs, overlap*fs, (75:115), fs, 'yaxis');
     FFT_75_115  = mean(abs(s));
 

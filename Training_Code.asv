@@ -9,9 +9,7 @@ function [f, Correlation] = Training_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels
     % Checkpt 2
 %}
 
-%% Global Variables
-global fs_ECOG;
-global Glovedata;     
+%% Global Variables     
 global overlap;
 global windowLen;
 global finger;
@@ -47,7 +45,7 @@ NoW         = NumWins(L, fs_ECOG, window_time, overlap);
 
 % FEATURES A: Calculate frequency domain avg power features over windows
 %# Calculates spectrogram and respective averages for assignment-specified frequencies
-Freq_domain_Feat     = FFT_featFn(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
+Freq_domain_Feat     = FFT_featFn_old(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
 
 % FEATURES B: Calculate time domain avg voltage 
 kernnel = repmat(1/(window_time*fs_ECOG), 1, window_time*fs_ECOG);
@@ -93,18 +91,22 @@ inmodel = cell(1,5);
 history = cell(1,5);
 f       = cell(1,5);
 for finger = 1:5;
-    [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_mat,Glovedata_ds(5:end,finger), 'direction', 'backward);
-    R_mat_finger = R_mat(:, inmodel{finger});
-    R_ones_train = ones(length(R_mat_finger),1);
-    TRAIN        = [R_ones_train R_mat_finger];
+%     [inmodel{finger}, history{finger}] = sequentialfs(@optimize_function,R_mat,Glovedata_ds(5:end,finger), 'nfeatures', 50);
+    [~, feature] = pca(R_mat);
+    R_ones_train = ones(length(feature),1);
+%     R_mat_finger = R_mat(:, inmodel{finger});
+%     R_mat_finger = R_mat(:, inmodel{finger});
+%     R_ones_train = ones(length(R_mat_finger),1);
+%     TRAIN        = [R_ones_train R_mat_finger];
+    TRAIN        = [R_ones_train feature];
     f{finger}    = mldivide(TRAIN' * TRAIN, TRAIN' * Glovedata_ds(5:end,finger));
     pred           = TRAIN*f{finger}; 
     
-    % spline
+%     spline
     points_excluded = windowLen + overlap*fs_ECOG;
     x               = overlap*fs_ECOG:overlap*fs_ECOG:L-points_excluded-overlap*fs_ECOG;
     xx              = 1:L-points_excluded;
-    pred_upsample   = spline(x, pred, xx);
+    pred_upsample   = smooth(round(spline(x, pred, xx);
     pred_upsample   = [zeros(points_excluded, 1); pred_upsample'];
    
     Correlation(finger)     = corr(Glovedata(:,finger), pred_upsample);

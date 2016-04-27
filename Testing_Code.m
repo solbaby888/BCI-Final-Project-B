@@ -1,5 +1,14 @@
 function [pred_upsample] = Testing_Code(ECoG_Sub_Chan, fs_ECOG, no_of_channels_ECOG, weights)
 
+%% Global Vars
+global fs_ECOG;
+global Glovedata;     
+global overlap;
+global windowLen;
+global finger;
+global L;
+global subj;
+
 %% Apply 60 Hz filter and Bandpass filter
 %{
     Will eventually have to save as a function to run on all channels
@@ -12,7 +21,7 @@ for i = 1:no_of_channels_ECOG;
     ECoG_Sub_Chan_filt{i} = filtfilt(d, ECoG_Sub_Chan{i});  
 end;
 
-%% Checkpt 1
+%% Checkpt 2
 %{ 
     window of 100 ms; overlap of 50 ms
 
@@ -25,7 +34,6 @@ end;
     NumWins = @(xLen, fs, winLen, winDisp) 1+floor((xLen-fs*winLen)/(winDisp*fs));  
     % winLen and winDisp are in secs, xLen are in samples
 % ======================================================================= %
-
 % Number of Windows for Subj
 window_time = 100*10^-3;                                 % (secs)
 overlap     = 50*10^-3;                                  % (secs)
@@ -35,7 +43,7 @@ NoW         = NumWins(L, fs_ECOG, window_time, overlap);
 
 % Calculate frequency domain avg power features over windows
 %# Calculates spectrogram and respective averages for assignment-specified frequencies
-Freq_domain_Feat     = FFT_featFn(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
+Freq_domain_Feat     = FFT_featFn_old(ECoG_Sub_Chan_filt, fs_ECOG, window_time, overlap); % windows X 5 Matrix
 
 % Calculate time domain avg voltage 
 kernnel = repmat(1/(window_time*fs_ECOG), 1, window_time*fs_ECOG);
@@ -51,7 +59,7 @@ for i=1:no_of_channels_ECOG
 end;
 
 % Linear Regression Prediction
-numoffeat       = 6;
+numoffeat       = size(Feat_Mat{1},2);
 numofprev_win   = 3;
 n_of_R          = NoW - numofprev_win;                              % number of windows for regression
 p_of_R          = no_of_channels_ECOG * numoffeat * numofprev_win;            
@@ -64,17 +72,21 @@ for i = 1:n_of_R;
         for j = 1:no_of_channels_ECOG;
             R_idx1 = (j-1)* numoffeat * numofprev_win + 1;
             R_idx2 = R_idx1 + numoffeat * numofprev_win - 1;
-            R_mat(i, R_idx1:R_idx2) = reshape(Feat_Mat{j}(curr_pt - 3:curr_pt - 1, :)', [1, 18]);
+            R_mat(i, R_idx1:R_idx2) = reshape(Feat_Mat{j}(curr_pt - 3:curr_pt - 1, :)', [1,  numofprev_win*numoffeat]);
         end;
 end; 
 
 %## Adding the first columns of ones
-R_ones     = ones(length(R_mat),1);
-R_matrix      = [R_ones R_mat];
+[~, feature] = pca(R_mat);
+R_ones_test = ones(length(feature),1);
+TEST        = [R_ones_test feature];
+
+% R_ones     = ones(length(R_mat),1);
+% R_matrix      = [R_ones R_mat];
 
 %# Prediction
  for i = 1:5
-    pred{i}      = R_matrix*weights.f{i};
+    pred{i}      = TEST*weights.f{i};
  end;
 
 % Spline Interpolation
@@ -84,7 +96,7 @@ xx = 1:L-points_excluded;
 
 pred_upsample = [];
 for i = 1:5
-    pred_upsample(:,i) = spline(x,pred{i}, xx);
+    pred_upsample(:,i) = smooth(round(spline(x,pred{i}, xx)));
 end
 pred_upsample = [zeros(points_excluded, 5); pred_upsample];
 
